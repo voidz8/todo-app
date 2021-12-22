@@ -1,14 +1,17 @@
 package nl.novi;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.Writer;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
 
@@ -36,7 +39,7 @@ public class Methods {
                 createNewTodoList();
                 break;
             case 2:
-                System.out.println("je hebt 1 gekozen");
+                openExistingTodoList();
                 break;
             case 3:
                 System.out.println("je hebt 1 gekozen");
@@ -93,19 +96,21 @@ public class Methods {
 
         if (option == 1) {
             this.saveFile(todoList.getWeek());
-            this.addNewTodoItem(todoList);
+            this.addNewTodoItem(todoList.getName(), todoList.getWeek(), todoList.getTodoList());
         }
         if (option == 2) {
             this.saveFile(todoList.getWeek());
         }
     }
 
-    private void addNewTodoItem(Object todoList) {
-        System.out.print(todoList);
+    private void addNewTodoItem(String listName, int week, List<Todo> todos) {
+        TodoList todoList = new TodoList(listName, week, todos);
         Scanner input = new Scanner(System.in);
+
         System.out.println(ConsoleColors.HEADING + "1. Nieuwe todo taak maken." + ConsoleColors.CYAN);
         System.out.println("Taak naam: ");
         String taskName = input.next();
+
         System.out.println("Vul het nummer in van dag waarop je de taak wilt uitvoeren:");
         System.out.println("1. Maandag");
         System.out.println("2. Dinsdag");
@@ -118,23 +123,30 @@ public class Methods {
         while (!intRange(1, 7, day)) {
             System.out.println(ConsoleColors.RED + "Kies een dag 1-7, " + day + " is geen geldige dag" + ConsoleColors.CYAN + "Probeer opnieuw:");
         }
+
         System.out.println("Geschatte tijd(minuten): ");
         int estimatedTime = input.nextInt();
+
         Todo todoItem = new Todo(taskName, estimatedTime, day);
         List<Todo> todoItems = new ArrayList<>();
-//        if (todoList.getTodoList() != null) {
-//            todoItems = todoList.getTodoList();
-//        }
-        todoItems.add(todoItem);
-//        try {
-//            FileOutputStream fos = new FileOutputStream("week-" + todoList.getWeek());
-//            ObjectOutputStream oos = new ObjectOutputStream(fos);
-//            oos.writeObject(todoList);
-//            oos.close();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
 
+        if (todoList.getTodoList() != null) {
+            todoItems = todoList.getTodoList();
+        }
+        todoItems.add(todoItem);
+
+        try {
+            FileOutputStream fos = new FileOutputStream(absolutePath + "week-" + todoList.getWeek() + ".txt");
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+            oos.writeBytes(todoList.getName() + "\n");
+            oos.writeBytes("Week: " + todoList.getWeek() +"\n");
+            for (Todo todo : todoItems) {
+                oos.writeBytes(String.format("%s Dag: %d, Geschatte tijd: %d minuten, Afgerond: %b, Besteedde tijd: %d ", todo.getName(), todo.getDay(), todo.getDay(), todo.isFinished(), todo.getTimeSpent()));
+            }
+            oos.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void saveFile(int week) {
@@ -145,6 +157,38 @@ public class Methods {
             System.out.println(ConsoleColors.GREEN + "Succesfully saved todo-list" + ConsoleColors.CYAN);
         } catch (Exception e) {
             System.out.println(ConsoleColors.RED + "Error while saving file: " + e + ConsoleColors.CYAN);
+        }
+    }
+
+    private void openExistingTodoList(){
+        Scanner input = new Scanner(System.in);
+        List<String> fileNames = getAllFiles();
+        System.out.println("Vul het nummer in van de todo-lijst die je wilt openen: ");
+        int option = input.nextInt();
+        printFile(fileNames.get(option));
+
+    }
+
+    private List<String> getAllFiles(){
+        List<String> files = new ArrayList<>();
+        File folder = new File(absolutePath );
+        File[] filesList = folder.listFiles();
+        for (int i = 0; i < filesList.length; i++){
+            File file = filesList[i];
+            if (file.isFile()){
+                System.out.println(String.format("%d. %s", i, file.getName()));
+                files.add(file.getName());
+            }
+        }
+        return files;
+    }
+
+    private void printFile(String fileName){
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(absolutePath + fileName));
+            br.lines().forEach(System.out::println);
+        } catch (Exception e){
+            System.out.println(e);
         }
     }
 }

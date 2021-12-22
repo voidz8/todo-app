@@ -1,6 +1,8 @@
 package nl.novi;
 
-public class Todo {
+import java.io.Serializable;
+
+public class Todo implements Serializable {
     private String name;
     private Integer estimatedTime;
     //monday 1 - 7 sunday
